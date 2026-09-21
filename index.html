@@ -52,6 +52,7 @@
   .pill{background:#fff;border:1px solid var(--line);border-radius:20px;padding:4px 12px;font-size:12.5px;color:var(--muted)}
   .tips{font-size:12.5px;color:var(--muted);line-height:1.6}
   .tips li{margin-bottom:2px}
+  .hint{display:block;font-size:11.5px;color:var(--muted);margin-top:4px}
   #msg{font-size:13.5px;font-weight:600;margin-top:10px;padding:10px 12px;border-radius:8px;display:none}
   #msg.ok{display:block;background:#e5f5ea;color:#1e7d3c}
   #msg.err{display:block;background:#fbe9e7;color:var(--red)}
@@ -100,11 +101,13 @@
       <label><span class="lbl">Rua <span class="req-star">*</span></span><input id="f-rua" placeholder="Nome da rua/avenida"></label>
       <label><span class="lbl">Número</span><input id="f-numero" placeholder="000"></label>
       <label><span class="lbl">Bairro <span class="req-star">*</span></span><input id="f-bairro" placeholder="Bairro"></label>
-      <label><span class="lbl">Cidade <span class="req-star">*</span></span><input id="f-cidade" placeholder="Cidade (EUA)"></label>
-      <label><span class="lbl">Estado <span class="req-star">*</span></span>
-        <input id="f-estado" maxlength="2" placeholder="Sigla do estado (EUA)">
+      <label><span class="lbl">Cidade <span class="req-star">*</span></span><input id="f-cidade" placeholder="Cidade nos EUA"></label>
+      <label><span class="lbl">Estado americano <span class="req-star">*</span></span>
+        <input id="f-estado" list="us-states" placeholder="Digite livremente ou selecione a sigla">
+        <datalist id="us-states"></datalist>
+        <span class="hint">Aceita preenchimento livre e também a lista com as siglas dos estados americanos.</span>
       </label>
-      <label><span class="lbl">Código Postal <span class="req-star">*</span></span><input id="f-cep" inputmode="numeric" maxlength="10" placeholder="00000 ou 00000-0000"></label>
+      <label><span class="lbl">Código Postal / ZIP Code <span class="req-star">*</span></span><input id="f-cep" inputmode="numeric" maxlength="10" placeholder="00000 ou 00000-0000"></label>
     </div>
   </div>
 
@@ -232,6 +235,32 @@ function maskCEP(v){
   if(v.length>5)v=v.replace(/(\d{5})(\d{1,4})$/,'$1-$2');
   return v;
 }
+const US_STATES=[
+  ['AL','Alabama'],['AK','Alasca'],['AZ','Arizona'],['AR','Arkansas'],['CA','Califórnia'],
+  ['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['FL','Flórida'],['GA','Geórgia'],
+  ['HI','Havaí'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],
+  ['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],
+  ['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],['MO','Missouri'],
+  ['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],['NH','New Hampshire'],['NJ','New Jersey'],
+  ['NM','Novo México'],['NY','Nova York'],['NC','Carolina do Norte'],['ND','Dakota do Norte'],['OH','Ohio'],
+  ['OK','Oklahoma'],['OR','Oregon'],['PA','Pensilvânia'],['RI','Rhode Island'],['SC','Carolina do Sul'],
+  ['SD','Dakota do Sul'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],
+  ['VA','Virgínia'],['WA','Washington'],['WV','Virgínia Ocidental'],['WI','Wisconsin'],['WY','Wyoming'],
+  ['DC','District of Columbia']
+];
+const stateAliases=US_STATES.reduce((acc,[abbr,name])=>{
+  acc[abbr]=abbr;
+  acc[name.toUpperCase()]=abbr;
+  return acc;
+},{});
+const stateList=document.getElementById('us-states');
+stateList.innerHTML=US_STATES.map(([abbr,name])=>'<option value="'+abbr+'" label="'+name+'"></option>').join('');
+function normalizeState(v){
+  const cleaned=(v||'').trim();
+  if(!cleaned)return '';
+  const normalized=stateAliases[cleaned.toUpperCase()];
+  return normalized||cleaned;
+}
 function validaCPF(cpfRaw){
   const cpf=(cpfRaw||'').replace(/\D/g,'');
   if(cpf.length!==11||/^(\d)\1{10}$/.test(cpf))return false;
@@ -252,7 +281,7 @@ document.getElementById('f-cpf').addEventListener('blur',function(){
 });
 document.getElementById('f-rg').addEventListener('input',function(){this.value=maskRG(this.value);});
 document.getElementById('f-tel').addEventListener('input',function(){this.value=maskTel(this.value);});
-document.getElementById('f-estado').addEventListener('input',function(){this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,2);});
+document.getElementById('f-estado').addEventListener('blur',function(){this.value=normalizeState(this.value);});
 document.getElementById('f-cep').addEventListener('input',function(){this.value=maskCEP(this.value);});
 document.getElementById('f-cep').addEventListener('blur',function(){this.value=maskCEP(this.value);});
 function uid(){return 'r'+Math.random().toString(36).slice(2,9);}
@@ -325,7 +354,8 @@ document.getElementById('btn-calc').onclick=calcTotais;
 function msg(text,ok){const el=document.getElementById('msg');el.textContent=text;el.className=ok?'ok':'err';}
 
 function validar(){
-  const req=['f-nome','f-cpf','f-rg','f-nasc','f-tel','f-email','f-rua','f-bairro','f-cidade','f-cep','f-agente','f-codigo','f-resumo-bens'];
+  document.getElementById('f-estado').value=normalizeState(document.getElementById('f-estado').value);
+  const req=['f-nome','f-cpf','f-rg','f-nasc','f-tel','f-email','f-rua','f-bairro','f-cidade','f-estado','f-cep','f-agente','f-codigo','f-resumo-bens'];
   for(const id of req){if(!document.getElementById(id).value.trim()){document.getElementById(id).focus();return id;}}
   if(!validaCPF(document.getElementById('f-cpf').value)){
     document.getElementById('f-cpf-err').style.display='block';
