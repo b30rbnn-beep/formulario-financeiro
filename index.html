@@ -102,9 +102,19 @@
       <label><span class="lbl">Bairro <span class="req-star">*</span></span><input id="f-bairro" placeholder="Bairro"></label>
       <label><span class="lbl">Cidade <span class="req-star">*</span></span><input id="f-cidade" placeholder="Cidade"></label>
       <label><span class="lbl">Estado <span class="req-star">*</span></span>
-        <select id="f-estado">
-          <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option>
-        </select>
+        <input id="f-estado" list="us-estados" maxlength="2" placeholder="Ex: FL">
+        <datalist id="us-estados">
+          <option value="FL"></option>
+          <option value="MA"></option>
+          <option value="NJ"></option>
+          <option value="NY"></option>
+          <option value="CT"></option>
+          <option value="GA"></option>
+          <option value="PA"></option>
+          <option value="MD"></option>
+          <option value="TX"></option>
+          <option value="CA"></option>
+        </datalist>
       </label>
       <label><span class="lbl">CEP <span class="req-star">*</span></span><input id="f-cep" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
     </div>
@@ -378,7 +388,7 @@ function coletarPayload(){
 
 function limparFormulario(){
   ['f-nome','f-cpf','f-rg','f-nasc','f-tel','f-email','f-rua','f-numero','f-bairro','f-cidade','f-cep','f-agente','f-codigo','f-resumo-bens'].forEach(id=>{document.getElementById(id).value='';});
-  document.getElementById('f-estado').value='AC';
+  document.getElementById('f-estado').value='';
   document.getElementById('f-cpf-err').style.display='none';
   document.querySelector('#tbl-inv tbody').innerHTML='';
   document.querySelector('#tbl-contas tbody').innerHTML='';
