@@ -239,6 +239,11 @@ function formatTotalsByCurrency(totals){
   if(!entries.length)return fmtMoney(0,DEFAULT_CURRENCY);
   return entries.map(([currency,value])=>fmtMoney(value,currency)).join(' · ');
 }
+function singleCurrencyAmount(totals){
+  const entries=Object.entries(totals||{}).filter(([,value])=>Number(value)!==0);
+  if(entries.length<=1)return entries[0]?Number(entries[0][1])||0:0;
+  return null;
+}
 
 /* ===== Máscaras automáticas ===== */
 function maskCPF(v){
@@ -393,17 +398,18 @@ function collectContas(){
 function calcTotais(){
   const investimentos=collectInvestimentos();
   const contas=collectContas();
-  const inv=investimentos.reduce((s,r)=>s+r.saldo,0);
-  const con=contas.reduce((s,r)=>s+r.saldo,0);
   const invPorMoeda=totalsByCurrency(investimentos);
   const conPorMoeda=totalsByCurrency(contas);
   const geralPorMoeda=mergeCurrencyTotals(invPorMoeda,conPorMoeda);
+  const inv=singleCurrencyAmount(invPorMoeda);
+  const con=singleCurrencyAmount(conPorMoeda);
+  const geral=singleCurrencyAmount(geralPorMoeda);
   document.getElementById('tot-inv').textContent=formatTotalsByCurrency(invPorMoeda);
   document.getElementById('tot-contas').textContent=formatTotalsByCurrency(conPorMoeda);
   document.getElementById('rs-inv').textContent=formatTotalsByCurrency(invPorMoeda);
   document.getElementById('rs-contas').textContent=formatTotalsByCurrency(conPorMoeda);
   document.getElementById('rs-geral').textContent=formatTotalsByCurrency(geralPorMoeda);
-  return {inv,con,geral:inv+con,invPorMoeda,conPorMoeda,geralPorMoeda};
+  return {inv,con,geral,invPorMoeda,conPorMoeda,geralPorMoeda};
 }
 document.getElementById('btn-calc').onclick=calcTotais;
 
