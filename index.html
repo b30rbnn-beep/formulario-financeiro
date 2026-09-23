@@ -408,13 +408,10 @@ function collectContas(){
 }
 function hasInvestmentRowData(tr){
   return ['.inv-inst','.inv-pais','.inv-fundo','.inv-data','.inv-carencia','.inv-venc','.inv-moeda'].some(sel=>tr.querySelector(sel).value.trim()!=='')
-    || tr.querySelector('.inv-mod').value!=='Ações'
     || (Number(tr.querySelector('.inv-saldo').value)||0)!==0;
 }
 function hasContaRowData(tr){
   return ['.cta-banco','.cta-pais','.cta-agencia','.cta-titular','.cta-moeda'].some(sel=>tr.querySelector(sel).value.trim()!=='')
-    || tr.querySelector('.cta-tipo').value!=='Corrente'
-    || tr.querySelector('.cta-conjunta').value!=='Não'
     || (Number(tr.querySelector('.cta-saldo').value)||0)!==0;
 }
 function calcTotais(){
