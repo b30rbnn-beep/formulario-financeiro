@@ -98,15 +98,15 @@
       <label><span class="lbl">E-mail <span class="req-star">*</span></span><input id="f-email" type="email" placeholder="email@exemplo.com"></label>
     </div>
     <div class="row-addr">
-      <label><span class="lbl">Rua <span class="req-star">*</span></span><input id="f-rua" placeholder="Nome da rua/avenida"></label>
-      <label><span class="lbl">Número</span><input id="f-numero" placeholder="000"></label>
-      <label><span class="lbl">Bairro <span class="req-star">*</span></span><input id="f-bairro" placeholder="Bairro"></label>
-      <label><span class="lbl">Cidade <span class="req-star">*</span></span><input id="f-cidade" placeholder="Cidade nos EUA"></label>
+      <label><span class="lbl">Rua <span class="req-star">*</span></span><input id="f-rua" autocomplete="off" placeholder="Nome da rua/avenida"></label>
+      <label><span class="lbl">Número</span><input id="f-numero" autocomplete="off" placeholder="000"></label>
+      <label><span class="lbl">Bairro <span class="req-star">*</span></span><input id="f-bairro" autocomplete="off" placeholder="Bairro"></label>
+      <label><span class="lbl">Cidade <span class="req-star">*</span></span><input id="f-cidade" autocomplete="off" placeholder="Cidade nos EUA"></label>
       <label><span class="lbl">Estado <span class="req-star">*</span></span>
-        <input id="f-estado" list="us-states" placeholder="Digite livremente ou selecione a sigla">
+        <input id="f-estado" list="us-states" autocomplete="off" placeholder="Digite livremente ou selecione a sigla">
         <datalist id="us-states"></datalist>
       </label>
-      <label><span class="lbl">Código Postal <span class="req-star">*</span></span><input id="f-cep" inputmode="numeric" maxlength="10" placeholder="00000 ou 00000-0000"></label>
+      <label><span class="lbl">Código Postal <span class="req-star">*</span></span><input id="f-cep" autocomplete="off" inputmode="numeric" maxlength="10" placeholder="00000 ou 00000-0000"></label>
     </div>
   </div>
 
@@ -332,7 +332,7 @@ function invRowHtml(row){
   const id=uid();
   return '<tr data-id="'+id+'">'
     +'<td><input class="inv-inst" value="'+(row.instituicao||'').replace(/"/g,'&quot;')+'" placeholder="Instituição financeira"></td>'
-    +'<td><input class="inv-pais" list="country-options" value="'+((row.pais||'').replace(/"/g,'&quot;'))+'" placeholder="País / território"></td>'
+    +'<td><input class="inv-pais" list="country-options" autocomplete="off" value="'+((row.pais||'').replace(/"/g,'&quot;'))+'" placeholder="País / território"></td>'
     +'<td><select class="inv-mod"><option '+(row.modalidade==='Ações'||!row.modalidade?'selected':'')+'>Ações</option><option '+(row.modalidade==='Renda Fixa'?'selected':'')+'>Renda Fixa</option><option '+(row.modalidade==='Fundo Imobiliário'?'selected':'')+'>Fundo Imobiliário</option><option '+(row.modalidade==='Criptomoeda'?'selected':'')+'>Criptomoeda</option><option '+(row.modalidade==='Previdência'?'selected':'')+'>Previdência</option><option '+(row.modalidade==='Outro'?'selected':'')+'>Outro</option></select></td>'
     +'<td><input class="inv-fundo" value="'+(row.fundo||'').replace(/"/g,'&quot;')+'" placeholder="Nome do fundo"></td>'
     +'<td><input class="inv-data" type="date" value="'+(row.data_aporte||'')+'"></td>'
@@ -346,7 +346,7 @@ function contaRowHtml(row){
   row=row||{};
   return '<tr data-id="'+uid()+'">'
     +'<td><input class="cta-banco" value="'+(row.banco||'').replace(/"/g,'&quot;')+'" placeholder="Banco ou instituição"></td>'
-    +'<td><input class="cta-pais" list="country-options" value="'+((row.pais||'').replace(/"/g,'&quot;'))+'" placeholder="País / território"></td>'
+    +'<td><input class="cta-pais" list="country-options" autocomplete="off" value="'+((row.pais||'').replace(/"/g,'&quot;'))+'" placeholder="País / território"></td>'
     +'<td><input class="cta-agencia" value="'+(row.agencia||'').replace(/"/g,'&quot;')+'" placeholder="Agência"></td>'
     +'<td><select class="cta-tipo"><option '+(row.tipo==='Corrente'||!row.tipo?'selected':'')+'>Corrente</option><option '+(row.tipo==='Poupança'?'selected':'')+'>Poupança</option><option '+(row.tipo==='Investimento'?'selected':'')+'>Investimento</option></select></td>'
     +'<td><select class="cta-conjunta"><option '+(row.conjunta==='Não'||!row.conjunta?'selected':'')+'>Não</option><option '+(row.conjunta==='Sim'?'selected':'')+'>Sim</option></select></td>'
