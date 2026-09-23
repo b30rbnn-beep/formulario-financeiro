@@ -421,12 +421,15 @@ function collectContas(){
 function hasInvestmentRowData(tr){
   const moeda=tr.querySelector('.inv-moeda');
   return ['.inv-inst','.inv-pais','.inv-fundo','.inv-data','.inv-carencia','.inv-venc'].some(sel=>tr.querySelector(sel).value.trim()!=='')
+    || tr.querySelector('.inv-mod').value!=='Ações'
     || (moeda.value.trim()!==''&&moeda.getAttribute('data-legacy-default')!=='1')
     || (Number(tr.querySelector('.inv-saldo').value)||0)!==0;
 }
 function hasContaRowData(tr){
   const moeda=tr.querySelector('.cta-moeda');
   return ['.cta-banco','.cta-pais','.cta-agencia','.cta-titular'].some(sel=>tr.querySelector(sel).value.trim()!=='')
+    || tr.querySelector('.cta-tipo').value!=='Corrente'
+    || tr.querySelector('.cta-conjunta').value!=='Não'
     || (moeda.value.trim()!==''&&moeda.getAttribute('data-legacy-default')!=='1')
     || (Number(tr.querySelector('.cta-saldo').value)||0)!==0;
 }
