@@ -210,9 +210,11 @@ const DEFAULT_CURRENCY='USD';
 const CURRENCY_SUGGESTIONS=['BRL','USD','EUR','GBP','JPY','CHF','CAD','AUD'];
 const COUNTRY_SUGGESTIONS=['Brasil','Estados Unidos','Canadá','Reino Unido','Suíça','Japão','Austrália','Alemanha','França','Portugal','Espanha','Itália','Argentina','Chile','México','Emirados Árabes Unidos','Singapura','Luxemburgo'];
 
+function sanitizeCurrency(v){
+  return (v||'').trim().toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+}
 function normalizeCurrency(v){
-  const cleaned=(v||'').trim().toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
-  return cleaned||DEFAULT_CURRENCY;
+  return sanitizeCurrency(v)||DEFAULT_CURRENCY;
 }
 function fmtMoney(n,currency){
   return normalizeCurrency(currency)+' '+(Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -229,8 +231,10 @@ function mergeCurrencyTotals(){
 function totalsByCurrency(rows){
   const totals={};
   rows.forEach(row=>{
-    const currency=normalizeCurrency(row.moeda);
-    totals[currency]=(totals[currency]||0)+(Number(row.saldo)||0);
+    const currency=sanitizeCurrency(row.moeda);
+    const saldo=Number(row.saldo)||0;
+    if(!currency)return;
+    totals[currency]=(totals[currency]||0)+saldo;
   });
   return totals;
 }
@@ -338,7 +342,7 @@ function invRowHtml(row){
     +'<td><input class="inv-data" type="date" value="'+(row.data_aporte||'')+'"></td>'
     +'<td><input class="inv-carencia" value="'+(row.carencia||'').replace(/"/g,'&quot;')+'" placeholder=""></td>'
     +'<td><input class="inv-venc" type="date" value="'+(row.vencimento||'')+'"></td>'
-    +'<td><input class="inv-moeda" list="currency-codes" maxlength="3" value="'+normalizeCurrency(row.moeda||DEFAULT_CURRENCY)+'" placeholder="USD"></td>'
+    +'<td><input class="inv-moeda" list="currency-codes" maxlength="3" value="'+sanitizeCurrency(row.moeda||'')+'" placeholder="USD"></td>'
     +'<td><input class="inv-saldo" type="number" inputmode="decimal" step="0.01" value="'+(row.saldo||0)+'" placeholder="0,00"></td>'
     +'<td><button class="btn btn-del" data-del-row>Excluir</button></td></tr>';
 }
@@ -351,7 +355,7 @@ function contaRowHtml(row){
     +'<td><select class="cta-tipo"><option '+(row.tipo==='Corrente'||!row.tipo?'selected':'')+'>Corrente</option><option '+(row.tipo==='Poupança'?'selected':'')+'>Poupança</option><option '+(row.tipo==='Investimento'?'selected':'')+'>Investimento</option></select></td>'
     +'<td><select class="cta-conjunta"><option '+(row.conjunta==='Não'||!row.conjunta?'selected':'')+'>Não</option><option '+(row.conjunta==='Sim'?'selected':'')+'>Sim</option></select></td>'
     +'<td><input class="cta-titular" value="'+(row.titular||'').replace(/"/g,'&quot;')+'" placeholder=""></td>'
-    +'<td><input class="cta-moeda" list="currency-codes" maxlength="3" value="'+normalizeCurrency(row.moeda||DEFAULT_CURRENCY)+'" placeholder="USD"></td>'
+    +'<td><input class="cta-moeda" list="currency-codes" maxlength="3" value="'+sanitizeCurrency(row.moeda||'')+'" placeholder="USD"></td>'
     +'<td><input class="cta-saldo" type="number" inputmode="decimal" step="0.01" value="'+(row.saldo||0)+'" placeholder="0,00"></td>'
     +'<td><button class="btn btn-del" data-del-row>Excluir</button></td></tr>';
 }
@@ -362,8 +366,8 @@ document.getElementById('add-inv').onclick=()=>addInvRow();
 document.getElementById('add-conta').onclick=()=>addContaRow();
 document.getElementById('tbl-inv').addEventListener('click',e=>{if(e.target.closest('[data-del-row]'))e.target.closest('tr').remove();});
 document.getElementById('tbl-contas').addEventListener('click',e=>{if(e.target.closest('[data-del-row]'))e.target.closest('tr').remove();});
-document.getElementById('tbl-inv').addEventListener('blur',e=>{if(e.target.classList.contains('inv-moeda'))e.target.value=normalizeCurrency(e.target.value);},true);
-document.getElementById('tbl-contas').addEventListener('blur',e=>{if(e.target.classList.contains('cta-moeda'))e.target.value=normalizeCurrency(e.target.value);},true);
+document.getElementById('tbl-inv').addEventListener('blur',e=>{if(e.target.classList.contains('inv-moeda'))e.target.value=sanitizeCurrency(e.target.value);},true);
+document.getElementById('tbl-contas').addEventListener('blur',e=>{if(e.target.classList.contains('cta-moeda'))e.target.value=sanitizeCurrency(e.target.value);},true);
 
 function collectInvestimentos(){
   return Array.from(document.querySelectorAll('#tbl-inv tbody tr')).map(tr=>({
@@ -374,7 +378,7 @@ function collectInvestimentos(){
     data_aporte:tr.querySelector('.inv-data').value,
     carencia:tr.querySelector('.inv-carencia').value.trim(),
     vencimento:tr.querySelector('.inv-venc').value,
-    moeda:normalizeCurrency(tr.querySelector('.inv-moeda').value),
+    moeda:sanitizeCurrency(tr.querySelector('.inv-moeda').value),
     saldo:Number(tr.querySelector('.inv-saldo').value)||0
   }));
 }
@@ -386,9 +390,17 @@ function collectContas(){
     tipo:tr.querySelector('.cta-tipo').value,
     conjunta:tr.querySelector('.cta-conjunta').value,
     titular:tr.querySelector('.cta-titular').value.trim(),
-    moeda:normalizeCurrency(tr.querySelector('.cta-moeda').value),
+    moeda:sanitizeCurrency(tr.querySelector('.cta-moeda').value),
     saldo:Number(tr.querySelector('.cta-saldo').value)||0
   }));
+}
+function hasInvestmentRowData(tr){
+  return ['.inv-inst','.inv-pais','.inv-fundo','.inv-data','.inv-carencia','.inv-venc','.inv-moeda'].some(sel=>tr.querySelector(sel).value.trim()!=='')
+    || (Number(tr.querySelector('.inv-saldo').value)||0)!==0;
+}
+function hasContaRowData(tr){
+  return ['.cta-banco','.cta-pais','.cta-agencia','.cta-titular','.cta-moeda'].some(sel=>tr.querySelector(sel).value.trim()!=='')
+    || (Number(tr.querySelector('.cta-saldo').value)||0)!==0;
 }
 function calcTotais(){
   const investimentos=collectInvestimentos();
@@ -413,6 +425,24 @@ function validar(){
   document.getElementById('f-estado').value=normalizeState(document.getElementById('f-estado').value);
   const req=['f-nome','f-cpf','f-rg','f-nasc','f-tel','f-email','f-rua','f-bairro','f-cidade','f-estado','f-cep','f-agente','f-codigo','f-resumo-bens'];
   for(const id of req){if(!document.getElementById(id).value.trim()){document.getElementById(id).focus();return id;}}
+  for(const tr of document.querySelectorAll('#tbl-inv tbody tr')){
+    const hasData=hasInvestmentRowData(tr);
+    if(!hasData)continue;
+    const pais=tr.querySelector('.inv-pais');
+    const moeda=tr.querySelector('.inv-moeda');
+    if(!pais.value.trim()){pais.focus();return 'inv-pais';}
+    moeda.value=sanitizeCurrency(moeda.value);
+    if(!moeda.value){moeda.focus();return 'inv-moeda';}
+  }
+  for(const tr of document.querySelectorAll('#tbl-contas tbody tr')){
+    const hasData=hasContaRowData(tr);
+    if(!hasData)continue;
+    const pais=tr.querySelector('.cta-pais');
+    const moeda=tr.querySelector('.cta-moeda');
+    if(!pais.value.trim()){pais.focus();return 'cta-pais';}
+    moeda.value=sanitizeCurrency(moeda.value);
+    if(!moeda.value){moeda.focus();return 'cta-moeda';}
+  }
   if(!validaCPF(document.getElementById('f-cpf').value)){
     document.getElementById('f-cpf-err').style.display='block';
     document.getElementById('f-cpf').focus();
@@ -445,6 +475,9 @@ function coletarPayload(){
     total_investimentos:t.inv,
     total_contas:t.con,
     total_geral:t.geral,
+    total_investimentos_por_moeda:t.invPorMoeda,
+    total_contas_por_moeda:t.conPorMoeda,
+    total_geral_por_moeda:t.geralPorMoeda,
     updated_at:new Date().toISOString()
   };
 }
@@ -464,6 +497,8 @@ function limparFormulario(){
 document.getElementById('btn-enviar').onclick=async function(){
   const faltando=validar();
   if(faltando==='f-cpf'){msg('O CPF informado não é válido. Confira e tente novamente.',false);return;}
+  if(faltando==='inv-pais'||faltando==='cta-pais'){msg('Informe o país ou território de cada instituição preenchida antes de enviar.',false);return;}
+  if(faltando==='inv-moeda'||faltando==='cta-moeda'){msg('Informe a moeda original de cada investimento ou conta preenchida antes de enviar.',false);return;}
   if(faltando){msg('Preencha todos os campos obrigatórios (*) antes de enviar.',false);return;}
   if(!sb){msg('Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.',false);return;}
   this.disabled=true;const orig=this.textContent;this.textContent='Enviando…';
