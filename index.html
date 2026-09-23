@@ -124,7 +124,7 @@
       <table id="tbl-inv">
         <thead><tr><th>Instituição financeira</th><th>País / território</th><th>Modalidade</th><th>Nome do Fundo</th><th>Data do aporte</th><th>Carência</th><th>Vencimento</th><th>Moeda</th><th>Saldo atual</th><th>Ações</th></tr></thead>
         <tbody></tbody>
-        <tfoot><tr><td colspan="8" style="text-align:right">Total de Investimentos</td><td id="tot-inv">USD 0,00</td><td></td></tr></tfoot>
+        <tfoot><tr><td colspan="8" style="text-align:right">Total de Investimentos</td><td id="tot-inv">BRL 0,00</td><td></td></tr></tfoot>
       </table>
     </div>
     <span class="hint">Informe o país/território da instituição e o código da moeda (ex.: BRL, USD, EUR, GBP, JPY, CHF, CAD, AUD).</span>
@@ -137,7 +137,7 @@
       <table id="tbl-contas">
         <thead><tr><th>Banco / instituição</th><th>País / território</th><th>Agência</th><th>Tipo</th><th>Conjunta</th><th>Titular</th><th>Moeda</th><th>Saldo atual</th><th>Ações</th></tr></thead>
         <tbody></tbody>
-        <tfoot><tr><td colspan="7" style="text-align:right">Total de Contas</td><td id="tot-contas">USD 0,00</td><td></td></tr></tfoot>
+        <tfoot><tr><td colspan="7" style="text-align:right">Total de Contas</td><td id="tot-contas">BRL 0,00</td><td></td></tr></tfoot>
       </table>
     </div>
     <span class="hint">Use o código monetário da conta para preservar o valor informado na moeda original.</span>
@@ -154,9 +154,9 @@
   <div class="card">
     <h2>Resumo</h2>
     <div class="resumo-box">
-      <span class="pill">Investimentos <b id="rs-inv">USD 0,00</b></span>
-      <span class="pill">Contas <b id="rs-contas">USD 0,00</b></span>
-      <span class="pill">Consolidado <b id="rs-geral">USD 0,00</b></span>
+      <span class="pill">Investimentos <b id="rs-inv">BRL 0,00</b></span>
+      <span class="pill">Contas <b id="rs-contas">BRL 0,00</b></span>
+      <span class="pill">Consolidado <b id="rs-geral">BRL 0,00</b></span>
     </div>
     <div class="actions">
       <button class="btn btn-primary" id="btn-calc">📊 Calcular Totais</button>
@@ -206,7 +206,7 @@ const params=new URLSearchParams(location.search);
 const clienteId=params.get('cliente')||null;
 let relatorioId=params.get('r')||null;
 
-const DEFAULT_CURRENCY='USD';
+const DEFAULT_CURRENCY='BRL';
 const CURRENCY_SUGGESTIONS=['BRL','USD','EUR','GBP','JPY','CHF','CAD','AUD'];
 const COUNTRY_SUGGESTIONS=['Brasil','Estados Unidos','Canadá','Reino Unido','Suíça','Japão','Austrália','Alemanha','França','Portugal','Espanha','Itália','Argentina','Chile','México','Emirados Árabes Unidos','Singapura','Luxemburgo'];
 
@@ -238,6 +238,12 @@ function formatTotalsByCurrency(totals){
   const entries=Object.entries(totals||{}).filter(([,value])=>Number(value)!==0);
   if(!entries.length)return fmtMoney(0,DEFAULT_CURRENCY);
   return entries.map(([currency,value])=>fmtMoney(value,currency)).join(' · ');
+}
+function singleCurrencyTotalOrNull(totals){
+  const entries=Object.entries(totals||{}).filter(([,value])=>Number(value)!==0);
+  if(!entries.length)return 0;
+  if(entries.length===1)return Number(entries[0][1])||0;
+  return null;
 }
 
 /* ===== Máscaras automáticas ===== */
@@ -338,7 +344,7 @@ function invRowHtml(row){
     +'<td><input class="inv-data" type="date" value="'+(row.data_aporte||'')+'"></td>'
     +'<td><input class="inv-carencia" value="'+(row.carencia||'').replace(/"/g,'&quot;')+'" placeholder=""></td>'
     +'<td><input class="inv-venc" type="date" value="'+(row.vencimento||'')+'"></td>'
-    +'<td><input class="inv-moeda" list="currency-codes" maxlength="3" value="'+normalizeCurrency(row.moeda||DEFAULT_CURRENCY)+'" placeholder="USD"></td>'
+    +'<td><input class="inv-moeda" list="currency-codes" maxlength="3" value="'+normalizeCurrency(row.moeda||DEFAULT_CURRENCY)+'" placeholder="BRL"></td>'
     +'<td><input class="inv-saldo" type="number" inputmode="decimal" step="0.01" value="'+(row.saldo||0)+'" placeholder="0,00"></td>'
     +'<td><button class="btn btn-del" data-del-row>Excluir</button></td></tr>';
 }
@@ -351,7 +357,7 @@ function contaRowHtml(row){
     +'<td><select class="cta-tipo"><option '+(row.tipo==='Corrente'||!row.tipo?'selected':'')+'>Corrente</option><option '+(row.tipo==='Poupança'?'selected':'')+'>Poupança</option><option '+(row.tipo==='Investimento'?'selected':'')+'>Investimento</option></select></td>'
     +'<td><select class="cta-conjunta"><option '+(row.conjunta==='Não'||!row.conjunta?'selected':'')+'>Não</option><option '+(row.conjunta==='Sim'?'selected':'')+'>Sim</option></select></td>'
     +'<td><input class="cta-titular" value="'+(row.titular||'').replace(/"/g,'&quot;')+'" placeholder=""></td>'
-    +'<td><input class="cta-moeda" list="currency-codes" maxlength="3" value="'+normalizeCurrency(row.moeda||DEFAULT_CURRENCY)+'" placeholder="USD"></td>'
+    +'<td><input class="cta-moeda" list="currency-codes" maxlength="3" value="'+normalizeCurrency(row.moeda||DEFAULT_CURRENCY)+'" placeholder="BRL"></td>'
     +'<td><input class="cta-saldo" type="number" inputmode="decimal" step="0.01" value="'+(row.saldo||0)+'" placeholder="0,00"></td>'
     +'<td><button class="btn btn-del" data-del-row>Excluir</button></td></tr>';
 }
@@ -393,17 +399,18 @@ function collectContas(){
 function calcTotais(){
   const investimentos=collectInvestimentos();
   const contas=collectContas();
-  const inv=investimentos.reduce((s,r)=>s+r.saldo,0);
-  const con=contas.reduce((s,r)=>s+r.saldo,0);
   const invPorMoeda=totalsByCurrency(investimentos);
   const conPorMoeda=totalsByCurrency(contas);
   const geralPorMoeda=mergeCurrencyTotals(invPorMoeda,conPorMoeda);
+  const inv=singleCurrencyTotalOrNull(invPorMoeda);
+  const con=singleCurrencyTotalOrNull(conPorMoeda);
+  const geral=singleCurrencyTotalOrNull(geralPorMoeda);
   document.getElementById('tot-inv').textContent=formatTotalsByCurrency(invPorMoeda);
   document.getElementById('tot-contas').textContent=formatTotalsByCurrency(conPorMoeda);
   document.getElementById('rs-inv').textContent=formatTotalsByCurrency(invPorMoeda);
   document.getElementById('rs-contas').textContent=formatTotalsByCurrency(conPorMoeda);
   document.getElementById('rs-geral').textContent=formatTotalsByCurrency(geralPorMoeda);
-  return {inv,con,geral:inv+con,invPorMoeda,conPorMoeda,geralPorMoeda};
+  return {inv,con,geral,invPorMoeda,conPorMoeda,geralPorMoeda};
 }
 document.getElementById('btn-calc').onclick=calcTotais;
 
@@ -445,6 +452,9 @@ function coletarPayload(){
     total_investimentos:t.inv,
     total_contas:t.con,
     total_geral:t.geral,
+    total_investimentos_por_moeda:t.invPorMoeda,
+    total_contas_por_moeda:t.conPorMoeda,
+    total_geral_por_moeda:t.geralPorMoeda,
     updated_at:new Date().toISOString()
   };
 }
