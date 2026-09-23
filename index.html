@@ -344,7 +344,8 @@ function uid(){return 'r'+Math.random().toString(36).slice(2,9);}
 function invRowHtml(row){
   row=row||{};
   const id=uid();
-  const invCurrency=sanitizeCurrency(row.moeda||'')||(rowHasSavedData(row,['instituicao','pais','fundo','data_aporte','carencia','vencimento'])?DEFAULT_CURRENCY:'');
+  const invLegacyCurrency=!sanitizeCurrency(row.moeda||'')&&rowHasSavedData(row,['instituicao','pais','fundo','data_aporte','carencia','vencimento']);
+  const invCurrency=sanitizeCurrency(row.moeda||'')||(invLegacyCurrency?DEFAULT_CURRENCY:'');
   return '<tr data-id="'+id+'">'
     +'<td><input class="inv-inst" value="'+(row.instituicao||'').replace(/"/g,'&quot;')+'" placeholder="Instituição financeira"></td>'
     +'<td><input class="inv-pais" list="country-options" value="'+((row.pais||'').replace(/"/g,'&quot;'))+'" placeholder="País / território"></td>'
@@ -353,13 +354,14 @@ function invRowHtml(row){
     +'<td><input class="inv-data" type="date" value="'+(row.data_aporte||'')+'"></td>'
     +'<td><input class="inv-carencia" value="'+(row.carencia||'').replace(/"/g,'&quot;')+'" placeholder=""></td>'
     +'<td><input class="inv-venc" type="date" value="'+(row.vencimento||'')+'"></td>'
-    +'<td><input class="inv-moeda" list="currency-codes" maxlength="3" value="'+invCurrency+'" placeholder="USD"></td>'
+    +'<td><input class="inv-moeda" list="currency-codes" maxlength="3" data-legacy-default="'+(invLegacyCurrency?'1':'0')+'" value="'+invCurrency+'" placeholder="USD"></td>'
     +'<td><input class="inv-saldo" type="number" inputmode="decimal" step="0.01" value="'+(row.saldo||0)+'" placeholder="0,00"></td>'
     +'<td><button class="btn btn-del" data-del-row>Excluir</button></td></tr>';
 }
 function contaRowHtml(row){
   row=row||{};
-  const contaCurrency=sanitizeCurrency(row.moeda||'')||(rowHasSavedData(row,['banco','pais','agencia','titular'])?DEFAULT_CURRENCY:'');
+  const contaLegacyCurrency=!sanitizeCurrency(row.moeda||'')&&rowHasSavedData(row,['banco','pais','agencia','titular']);
+  const contaCurrency=sanitizeCurrency(row.moeda||'')||(contaLegacyCurrency?DEFAULT_CURRENCY:'');
   return '<tr data-id="'+uid()+'">'
     +'<td><input class="cta-banco" value="'+(row.banco||'').replace(/"/g,'&quot;')+'" placeholder="Banco ou instituição"></td>'
     +'<td><input class="cta-pais" list="country-options" value="'+((row.pais||'').replace(/"/g,'&quot;'))+'" placeholder="País / território"></td>'
@@ -367,7 +369,7 @@ function contaRowHtml(row){
     +'<td><select class="cta-tipo"><option '+(row.tipo==='Corrente'||!row.tipo?'selected':'')+'>Corrente</option><option '+(row.tipo==='Poupança'?'selected':'')+'>Poupança</option><option '+(row.tipo==='Investimento'?'selected':'')+'>Investimento</option></select></td>'
     +'<td><select class="cta-conjunta"><option '+(row.conjunta==='Não'||!row.conjunta?'selected':'')+'>Não</option><option '+(row.conjunta==='Sim'?'selected':'')+'>Sim</option></select></td>'
     +'<td><input class="cta-titular" value="'+(row.titular||'').replace(/"/g,'&quot;')+'" placeholder=""></td>'
-    +'<td><input class="cta-moeda" list="currency-codes" maxlength="3" value="'+contaCurrency+'" placeholder="USD"></td>'
+    +'<td><input class="cta-moeda" list="currency-codes" maxlength="3" data-legacy-default="'+(contaLegacyCurrency?'1':'0')+'" value="'+contaCurrency+'" placeholder="USD"></td>'
     +'<td><input class="cta-saldo" type="number" inputmode="decimal" step="0.01" value="'+(row.saldo||0)+'" placeholder="0,00"></td>'
     +'<td><button class="btn btn-del" data-del-row>Excluir</button></td></tr>';
 }
@@ -378,8 +380,18 @@ document.getElementById('add-inv').onclick=()=>addInvRow();
 document.getElementById('add-conta').onclick=()=>addContaRow();
 document.getElementById('tbl-inv').addEventListener('click',e=>{if(e.target.closest('[data-del-row]'))e.target.closest('tr').remove();});
 document.getElementById('tbl-contas').addEventListener('click',e=>{if(e.target.closest('[data-del-row]'))e.target.closest('tr').remove();});
-document.getElementById('tbl-inv').addEventListener('blur',e=>{if(e.target.classList.contains('inv-moeda'))e.target.value=sanitizeCurrency(e.target.value);},true);
-document.getElementById('tbl-contas').addEventListener('blur',e=>{if(e.target.classList.contains('cta-moeda'))e.target.value=sanitizeCurrency(e.target.value);},true);
+document.getElementById('tbl-inv').addEventListener('blur',e=>{
+  if(e.target.classList.contains('inv-moeda')){
+    e.target.value=sanitizeCurrency(e.target.value);
+    e.target.setAttribute('data-legacy-default','0');
+  }
+},true);
+document.getElementById('tbl-contas').addEventListener('blur',e=>{
+  if(e.target.classList.contains('cta-moeda')){
+    e.target.value=sanitizeCurrency(e.target.value);
+    e.target.setAttribute('data-legacy-default','0');
+  }
+},true);
 
 function collectInvestimentos(){
   return Array.from(document.querySelectorAll('#tbl-inv tbody tr')).filter(hasInvestmentRowData).map(tr=>({
@@ -407,11 +419,15 @@ function collectContas(){
   }));
 }
 function hasInvestmentRowData(tr){
+  const moeda=tr.querySelector('.inv-moeda');
   return ['.inv-inst','.inv-pais','.inv-fundo','.inv-data','.inv-carencia','.inv-venc'].some(sel=>tr.querySelector(sel).value.trim()!=='')
+    || (moeda.value.trim()!==''&&moeda.getAttribute('data-legacy-default')!=='1')
     || (Number(tr.querySelector('.inv-saldo').value)||0)!==0;
 }
 function hasContaRowData(tr){
+  const moeda=tr.querySelector('.cta-moeda');
   return ['.cta-banco','.cta-pais','.cta-agencia','.cta-titular'].some(sel=>tr.querySelector(sel).value.trim()!=='')
+    || (moeda.value.trim()!==''&&moeda.getAttribute('data-legacy-default')!=='1')
     || (Number(tr.querySelector('.cta-saldo').value)||0)!==0;
 }
 function calcTotais(){
