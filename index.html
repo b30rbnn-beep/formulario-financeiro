@@ -219,6 +219,13 @@ function normalizeCurrency(v){
 function rowHasSavedData(row,fields){
   return fields.some(field=>String(row[field]||'').trim()!=='') || (Number(row.saldo)||0)!==0;
 }
+function rowHasMeaningfulData(row){
+  return Object.entries(row||{}).some(([field,value])=>{
+    if(field==='moeda')return false;
+    if(field==='saldo')return (Number(value)||0)!==0;
+    return String(value||'').trim()!=='';
+  });
+}
 function fmtMoney(n,currency){
   return normalizeCurrency(currency)+' '+(Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
@@ -234,7 +241,7 @@ function mergeCurrencyTotals(){
 function totalsByCurrency(rows){
   const totals={};
   rows.forEach(row=>{
-    const currency=sanitizeCurrency(row.moeda);
+    const currency=sanitizeCurrency(row.moeda)||(rowHasMeaningfulData(row)?DEFAULT_CURRENCY:'');
     const saldo=Number(row.saldo)||0;
     if(!currency)return;
     totals[currency]=(totals[currency]||0)+saldo;
@@ -401,10 +408,13 @@ function collectContas(){
 }
 function hasInvestmentRowData(tr){
   return ['.inv-inst','.inv-pais','.inv-fundo','.inv-data','.inv-carencia','.inv-venc','.inv-moeda'].some(sel=>tr.querySelector(sel).value.trim()!=='')
+    || tr.querySelector('.inv-mod').value!=='Ações'
     || (Number(tr.querySelector('.inv-saldo').value)||0)!==0;
 }
 function hasContaRowData(tr){
   return ['.cta-banco','.cta-pais','.cta-agencia','.cta-titular','.cta-moeda'].some(sel=>tr.querySelector(sel).value.trim()!=='')
+    || tr.querySelector('.cta-tipo').value!=='Corrente'
+    || tr.querySelector('.cta-conjunta').value!=='Não'
     || (Number(tr.querySelector('.cta-saldo').value)||0)!==0;
 }
 function calcTotais(){
