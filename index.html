@@ -216,6 +216,9 @@ function sanitizeCurrency(v){
 function normalizeCurrency(v){
   return sanitizeCurrency(v)||DEFAULT_CURRENCY;
 }
+function rowHasSavedData(row,fields){
+  return fields.some(field=>String(row[field]||'').trim()!=='') || (Number(row.saldo)||0)!==0;
+}
 function fmtMoney(n,currency){
   return normalizeCurrency(currency)+' '+(Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
@@ -334,6 +337,7 @@ function uid(){return 'r'+Math.random().toString(36).slice(2,9);}
 function invRowHtml(row){
   row=row||{};
   const id=uid();
+  const invCurrency=sanitizeCurrency(row.moeda||'')||(rowHasSavedData(row,['instituicao','pais','fundo','data_aporte','carencia','vencimento'])?DEFAULT_CURRENCY:'');
   return '<tr data-id="'+id+'">'
     +'<td><input class="inv-inst" value="'+(row.instituicao||'').replace(/"/g,'&quot;')+'" placeholder="Instituição financeira"></td>'
     +'<td><input class="inv-pais" list="country-options" value="'+((row.pais||'').replace(/"/g,'&quot;'))+'" placeholder="País / território"></td>'
@@ -342,12 +346,13 @@ function invRowHtml(row){
     +'<td><input class="inv-data" type="date" value="'+(row.data_aporte||'')+'"></td>'
     +'<td><input class="inv-carencia" value="'+(row.carencia||'').replace(/"/g,'&quot;')+'" placeholder=""></td>'
     +'<td><input class="inv-venc" type="date" value="'+(row.vencimento||'')+'"></td>'
-    +'<td><input class="inv-moeda" list="currency-codes" maxlength="3" value="'+sanitizeCurrency(row.moeda||'')+'" placeholder="USD"></td>'
+    +'<td><input class="inv-moeda" list="currency-codes" maxlength="3" value="'+invCurrency+'" placeholder="USD"></td>'
     +'<td><input class="inv-saldo" type="number" inputmode="decimal" step="0.01" value="'+(row.saldo||0)+'" placeholder="0,00"></td>'
     +'<td><button class="btn btn-del" data-del-row>Excluir</button></td></tr>';
 }
 function contaRowHtml(row){
   row=row||{};
+  const contaCurrency=sanitizeCurrency(row.moeda||'')||(rowHasSavedData(row,['banco','pais','agencia','titular'])?DEFAULT_CURRENCY:'');
   return '<tr data-id="'+uid()+'">'
     +'<td><input class="cta-banco" value="'+(row.banco||'').replace(/"/g,'&quot;')+'" placeholder="Banco ou instituição"></td>'
     +'<td><input class="cta-pais" list="country-options" value="'+((row.pais||'').replace(/"/g,'&quot;'))+'" placeholder="País / território"></td>'
@@ -355,7 +360,7 @@ function contaRowHtml(row){
     +'<td><select class="cta-tipo"><option '+(row.tipo==='Corrente'||!row.tipo?'selected':'')+'>Corrente</option><option '+(row.tipo==='Poupança'?'selected':'')+'>Poupança</option><option '+(row.tipo==='Investimento'?'selected':'')+'>Investimento</option></select></td>'
     +'<td><select class="cta-conjunta"><option '+(row.conjunta==='Não'||!row.conjunta?'selected':'')+'>Não</option><option '+(row.conjunta==='Sim'?'selected':'')+'>Sim</option></select></td>'
     +'<td><input class="cta-titular" value="'+(row.titular||'').replace(/"/g,'&quot;')+'" placeholder=""></td>'
-    +'<td><input class="cta-moeda" list="currency-codes" maxlength="3" value="'+sanitizeCurrency(row.moeda||'')+'" placeholder="USD"></td>'
+    +'<td><input class="cta-moeda" list="currency-codes" maxlength="3" value="'+contaCurrency+'" placeholder="USD"></td>'
     +'<td><input class="cta-saldo" type="number" inputmode="decimal" step="0.01" value="'+(row.saldo||0)+'" placeholder="0,00"></td>'
     +'<td><button class="btn btn-del" data-del-row>Excluir</button></td></tr>';
 }
