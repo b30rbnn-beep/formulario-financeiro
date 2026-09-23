@@ -382,7 +382,7 @@ document.getElementById('tbl-inv').addEventListener('blur',e=>{if(e.target.class
 document.getElementById('tbl-contas').addEventListener('blur',e=>{if(e.target.classList.contains('cta-moeda'))e.target.value=sanitizeCurrency(e.target.value);},true);
 
 function collectInvestimentos(){
-  return Array.from(document.querySelectorAll('#tbl-inv tbody tr')).map(tr=>({
+  return Array.from(document.querySelectorAll('#tbl-inv tbody tr')).filter(hasInvestmentRowData).map(tr=>({
     instituicao:tr.querySelector('.inv-inst').value.trim(),
     pais:tr.querySelector('.inv-pais').value.trim(),
     modalidade:tr.querySelector('.inv-mod').value,
@@ -395,7 +395,7 @@ function collectInvestimentos(){
   }));
 }
 function collectContas(){
-  return Array.from(document.querySelectorAll('#tbl-contas tbody tr')).map(tr=>({
+  return Array.from(document.querySelectorAll('#tbl-contas tbody tr')).filter(hasContaRowData).map(tr=>({
     banco:tr.querySelector('.cta-banco').value.trim(),
     pais:tr.querySelector('.cta-pais').value.trim(),
     agencia:tr.querySelector('.cta-agencia').value.trim(),
@@ -407,12 +407,12 @@ function collectContas(){
   }));
 }
 function hasInvestmentRowData(tr){
-  return ['.inv-inst','.inv-pais','.inv-fundo','.inv-data','.inv-carencia','.inv-venc'].some(sel=>tr.querySelector(sel).value.trim()!=='')
+  return ['.inv-inst','.inv-pais','.inv-fundo','.inv-data','.inv-carencia','.inv-venc','.inv-moeda'].some(sel=>tr.querySelector(sel).value.trim()!=='')
     || tr.querySelector('.inv-mod').value!=='Ações'
     || (Number(tr.querySelector('.inv-saldo').value)||0)!==0;
 }
 function hasContaRowData(tr){
-  return ['.cta-banco','.cta-pais','.cta-agencia','.cta-titular'].some(sel=>tr.querySelector(sel).value.trim()!=='')
+  return ['.cta-banco','.cta-pais','.cta-agencia','.cta-titular','.cta-moeda'].some(sel=>tr.querySelector(sel).value.trim()!=='')
     || tr.querySelector('.cta-tipo').value!=='Corrente'
     || tr.querySelector('.cta-conjunta').value!=='Não'
     || (Number(tr.querySelector('.cta-saldo').value)||0)!==0;
