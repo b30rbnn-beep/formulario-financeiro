@@ -122,11 +122,12 @@
     <h2>Investimentos</h2>
     <div class="tbl-wrap">
       <table id="tbl-inv">
-        <thead><tr><th>Instituição</th><th>Modalidade</th><th>Nome do Fundo</th><th>Data do aporte</th><th>Carência</th><th>Vencimento</th><th>Saldo atual (R$)</th><th>Ações</th></tr></thead>
+        <thead><tr><th>Instituição financeira</th><th>País / território</th><th>Modalidade</th><th>Nome do Fundo</th><th>Data do aporte</th><th>Carência</th><th>Vencimento</th><th>Moeda</th><th>Saldo atual</th><th>Ações</th></tr></thead>
         <tbody></tbody>
-        <tfoot><tr><td colspan="6" style="text-align:right">Total de Investimentos</td><td id="tot-inv">R$ 0,00</td><td></td></tr></tfoot>
+        <tfoot><tr><td colspan="8" style="text-align:right">Total de Investimentos</td><td id="tot-inv">USD 0,00</td><td></td></tr></tfoot>
       </table>
     </div>
+    <span class="hint">Informe o país/território da instituição e o código da moeda (ex.: BRL, USD, EUR, GBP, JPY, CHF, CAD, AUD).</span>
     <button class="btn btn-add" id="add-inv">+ Adicionar Investimento</button>
   </div>
 
@@ -134,11 +135,12 @@
     <h2>Contas Bancárias</h2>
     <div class="tbl-wrap">
       <table id="tbl-contas">
-        <thead><tr><th>Banco</th><th>Agência</th><th>Tipo</th><th>Conjunta</th><th>Titular</th><th>Saldo atual (R$)</th><th>Ações</th></tr></thead>
+        <thead><tr><th>Banco / instituição</th><th>País / território</th><th>Agência</th><th>Tipo</th><th>Conjunta</th><th>Titular</th><th>Moeda</th><th>Saldo atual</th><th>Ações</th></tr></thead>
         <tbody></tbody>
-        <tfoot><tr><td colspan="5" style="text-align:right">Total de Contas</td><td id="tot-contas">R$ 0,00</td><td></td></tr></tfoot>
+        <tfoot><tr><td colspan="7" style="text-align:right">Total de Contas</td><td id="tot-contas">USD 0,00</td><td></td></tr></tfoot>
       </table>
     </div>
+    <span class="hint">Use o código monetário da conta para preservar o valor informado na moeda original.</span>
     <button class="btn btn-add" id="add-conta">+ Adicionar Conta</button>
   </div>
 
@@ -152,9 +154,9 @@
   <div class="card">
     <h2>Resumo</h2>
     <div class="resumo-box">
-      <span class="pill">Investimentos <b id="rs-inv">R$ 0,00</b></span>
-      <span class="pill">Contas <b id="rs-contas">R$ 0,00</b></span>
-      <span class="pill">Geral <b id="rs-geral">R$ 0,00</b></span>
+      <span class="pill">Investimentos <b id="rs-inv">USD 0,00</b></span>
+      <span class="pill">Contas <b id="rs-contas">USD 0,00</b></span>
+      <span class="pill">Consolidado <b id="rs-geral">USD 0,00</b></span>
     </div>
     <div class="actions">
       <button class="btn btn-primary" id="btn-calc">📊 Calcular Totais</button>
@@ -164,7 +166,7 @@
     <div id="msg"></div>
     <p class="tips">Dicas:</p>
     <ul class="tips">
-      <li>Preencha as tabelas e use "Calcular Totais" antes de gerar o PDF.</li>
+      <li>Preencha as tabelas com o país/território e a moeda original de cada instituição antes de calcular os totais.</li>
       <li>Se sua residência não possuir número, informe <b>000</b> no campo "Número".</li>
       <li>Clique em "Enviar Relatório" para que seu agente responsável receba os dados.</li>
     </ul>
@@ -204,7 +206,39 @@ const params=new URLSearchParams(location.search);
 const clienteId=params.get('cliente')||null;
 let relatorioId=params.get('r')||null;
 
-function fmtMoney(n){n=Number(n)||0;return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+const DEFAULT_CURRENCY='USD';
+const CURRENCY_SUGGESTIONS=['BRL','USD','EUR','GBP','JPY','CHF','CAD','AUD'];
+const COUNTRY_SUGGESTIONS=['Brasil','Estados Unidos','Canadá','Reino Unido','Suíça','Japão','Austrália','Alemanha','França','Portugal','Espanha','Itália','Argentina','Chile','México','Emirados Árabes Unidos','Singapura','Luxemburgo'];
+
+function normalizeCurrency(v){
+  const cleaned=(v||'').trim().toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+  return cleaned||DEFAULT_CURRENCY;
+}
+function fmtMoney(n,currency){
+  return normalizeCurrency(currency)+' '+(Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function mergeCurrencyTotals(){
+  const merged={};
+  Array.from(arguments).forEach(group=>{
+    Object.entries(group||{}).forEach(([currency,value])=>{
+      merged[currency]=(merged[currency]||0)+(Number(value)||0);
+    });
+  });
+  return merged;
+}
+function totalsByCurrency(rows){
+  const totals={};
+  rows.forEach(row=>{
+    const currency=normalizeCurrency(row.moeda);
+    totals[currency]=(totals[currency]||0)+(Number(row.saldo)||0);
+  });
+  return totals;
+}
+function formatTotalsByCurrency(totals){
+  const entries=Object.entries(totals||{}).filter(([,value])=>Number(value)!==0);
+  if(!entries.length)return fmtMoney(0,DEFAULT_CURRENCY);
+  return entries.map(([currency,value])=>fmtMoney(value,currency)).join(' · ');
+}
 
 /* ===== Máscaras automáticas ===== */
 function maskCPF(v){
@@ -254,6 +288,14 @@ const stateAliases=US_STATES.reduce((acc,[abbr,name])=>{
 },{});
 const stateList=document.getElementById('us-states');
 stateList.innerHTML=US_STATES.map(([abbr,name])=>'<option value="'+abbr+'" label="'+name+'"></option>').join('');
+const currencyList=document.createElement('datalist');
+currencyList.id='currency-codes';
+currencyList.innerHTML=CURRENCY_SUGGESTIONS.map(code=>'<option value="'+code+'"></option>').join('');
+document.body.appendChild(currencyList);
+const countryList=document.createElement('datalist');
+countryList.id='country-options';
+countryList.innerHTML=COUNTRY_SUGGESTIONS.map(country=>'<option value="'+country+'"></option>').join('');
+document.body.appendChild(countryList);
 function normalizeState(v){
   const cleaned=(v||'').trim();
   if(!cleaned)return '';
@@ -289,23 +331,27 @@ function invRowHtml(row){
   row=row||{};
   const id=uid();
   return '<tr data-id="'+id+'">'
-    +'<td><input class="inv-inst" value="'+(row.instituicao||'').replace(/"/g,'&quot;')+'" placeholder="Instituição"></td>'
+    +'<td><input class="inv-inst" value="'+(row.instituicao||'').replace(/"/g,'&quot;')+'" placeholder="Instituição financeira"></td>'
+    +'<td><input class="inv-pais" list="country-options" value="'+((row.pais||'').replace(/"/g,'&quot;'))+'" placeholder="País / território"></td>'
     +'<td><select class="inv-mod"><option '+(row.modalidade==='Ações'||!row.modalidade?'selected':'')+'>Ações</option><option '+(row.modalidade==='Renda Fixa'?'selected':'')+'>Renda Fixa</option><option '+(row.modalidade==='Fundo Imobiliário'?'selected':'')+'>Fundo Imobiliário</option><option '+(row.modalidade==='Criptomoeda'?'selected':'')+'>Criptomoeda</option><option '+(row.modalidade==='Previdência'?'selected':'')+'>Previdência</option><option '+(row.modalidade==='Outro'?'selected':'')+'>Outro</option></select></td>'
     +'<td><input class="inv-fundo" value="'+(row.fundo||'').replace(/"/g,'&quot;')+'" placeholder="Nome do fundo"></td>'
     +'<td><input class="inv-data" type="date" value="'+(row.data_aporte||'')+'"></td>'
     +'<td><input class="inv-carencia" value="'+(row.carencia||'').replace(/"/g,'&quot;')+'" placeholder=""></td>'
     +'<td><input class="inv-venc" type="date" value="'+(row.vencimento||'')+'"></td>'
+    +'<td><input class="inv-moeda" list="currency-codes" maxlength="3" value="'+normalizeCurrency(row.moeda||DEFAULT_CURRENCY)+'" placeholder="USD"></td>'
     +'<td><input class="inv-saldo" type="number" inputmode="decimal" step="0.01" value="'+(row.saldo||0)+'" placeholder="0,00"></td>'
     +'<td><button class="btn btn-del" data-del-row>Excluir</button></td></tr>';
 }
 function contaRowHtml(row){
   row=row||{};
   return '<tr data-id="'+uid()+'">'
-    +'<td><input class="cta-banco" value="'+(row.banco||'').replace(/"/g,'&quot;')+'" placeholder="Banco"></td>'
+    +'<td><input class="cta-banco" value="'+(row.banco||'').replace(/"/g,'&quot;')+'" placeholder="Banco ou instituição"></td>'
+    +'<td><input class="cta-pais" list="country-options" value="'+((row.pais||'').replace(/"/g,'&quot;'))+'" placeholder="País / território"></td>'
     +'<td><input class="cta-agencia" value="'+(row.agencia||'').replace(/"/g,'&quot;')+'" placeholder="Agência"></td>'
     +'<td><select class="cta-tipo"><option '+(row.tipo==='Corrente'||!row.tipo?'selected':'')+'>Corrente</option><option '+(row.tipo==='Poupança'?'selected':'')+'>Poupança</option><option '+(row.tipo==='Investimento'?'selected':'')+'>Investimento</option></select></td>'
     +'<td><select class="cta-conjunta"><option '+(row.conjunta==='Não'||!row.conjunta?'selected':'')+'>Não</option><option '+(row.conjunta==='Sim'?'selected':'')+'>Sim</option></select></td>'
     +'<td><input class="cta-titular" value="'+(row.titular||'').replace(/"/g,'&quot;')+'" placeholder=""></td>'
+    +'<td><input class="cta-moeda" list="currency-codes" maxlength="3" value="'+normalizeCurrency(row.moeda||DEFAULT_CURRENCY)+'" placeholder="USD"></td>'
     +'<td><input class="cta-saldo" type="number" inputmode="decimal" step="0.01" value="'+(row.saldo||0)+'" placeholder="0,00"></td>'
     +'<td><button class="btn btn-del" data-del-row>Excluir</button></td></tr>';
 }
@@ -316,37 +362,48 @@ document.getElementById('add-inv').onclick=()=>addInvRow();
 document.getElementById('add-conta').onclick=()=>addContaRow();
 document.getElementById('tbl-inv').addEventListener('click',e=>{if(e.target.closest('[data-del-row]'))e.target.closest('tr').remove();});
 document.getElementById('tbl-contas').addEventListener('click',e=>{if(e.target.closest('[data-del-row]'))e.target.closest('tr').remove();});
+document.getElementById('tbl-inv').addEventListener('blur',e=>{if(e.target.classList.contains('inv-moeda'))e.target.value=normalizeCurrency(e.target.value);},true);
+document.getElementById('tbl-contas').addEventListener('blur',e=>{if(e.target.classList.contains('cta-moeda'))e.target.value=normalizeCurrency(e.target.value);},true);
 
 function collectInvestimentos(){
   return Array.from(document.querySelectorAll('#tbl-inv tbody tr')).map(tr=>({
     instituicao:tr.querySelector('.inv-inst').value.trim(),
+    pais:tr.querySelector('.inv-pais').value.trim(),
     modalidade:tr.querySelector('.inv-mod').value,
     fundo:tr.querySelector('.inv-fundo').value.trim(),
     data_aporte:tr.querySelector('.inv-data').value,
     carencia:tr.querySelector('.inv-carencia').value.trim(),
     vencimento:tr.querySelector('.inv-venc').value,
+    moeda:normalizeCurrency(tr.querySelector('.inv-moeda').value),
     saldo:Number(tr.querySelector('.inv-saldo').value)||0
   }));
 }
 function collectContas(){
   return Array.from(document.querySelectorAll('#tbl-contas tbody tr')).map(tr=>({
     banco:tr.querySelector('.cta-banco').value.trim(),
+    pais:tr.querySelector('.cta-pais').value.trim(),
     agencia:tr.querySelector('.cta-agencia').value.trim(),
     tipo:tr.querySelector('.cta-tipo').value,
     conjunta:tr.querySelector('.cta-conjunta').value,
     titular:tr.querySelector('.cta-titular').value.trim(),
+    moeda:normalizeCurrency(tr.querySelector('.cta-moeda').value),
     saldo:Number(tr.querySelector('.cta-saldo').value)||0
   }));
 }
 function calcTotais(){
-  const inv=collectInvestimentos().reduce((s,r)=>s+r.saldo,0);
-  const con=collectContas().reduce((s,r)=>s+r.saldo,0);
-  document.getElementById('tot-inv').textContent=fmtMoney(inv);
-  document.getElementById('tot-contas').textContent=fmtMoney(con);
-  document.getElementById('rs-inv').textContent=fmtMoney(inv);
-  document.getElementById('rs-contas').textContent=fmtMoney(con);
-  document.getElementById('rs-geral').textContent=fmtMoney(inv+con);
-  return {inv,con,geral:inv+con};
+  const investimentos=collectInvestimentos();
+  const contas=collectContas();
+  const inv=investimentos.reduce((s,r)=>s+r.saldo,0);
+  const con=contas.reduce((s,r)=>s+r.saldo,0);
+  const invPorMoeda=totalsByCurrency(investimentos);
+  const conPorMoeda=totalsByCurrency(contas);
+  const geralPorMoeda=mergeCurrencyTotals(invPorMoeda,conPorMoeda);
+  document.getElementById('tot-inv').textContent=formatTotalsByCurrency(invPorMoeda);
+  document.getElementById('tot-contas').textContent=formatTotalsByCurrency(conPorMoeda);
+  document.getElementById('rs-inv').textContent=formatTotalsByCurrency(invPorMoeda);
+  document.getElementById('rs-contas').textContent=formatTotalsByCurrency(conPorMoeda);
+  document.getElementById('rs-geral').textContent=formatTotalsByCurrency(geralPorMoeda);
+  return {inv,con,geral:inv+con,invPorMoeda,conPorMoeda,geralPorMoeda};
 }
 document.getElementById('btn-calc').onclick=calcTotais;
 
@@ -450,13 +507,13 @@ document.getElementById('btn-pdf').onclick=function(){
   doc.setFont('helvetica','bold');doc.text('Investimentos',14,y);y+=7;
   doc.setFont('helvetica','normal');doc.setFontSize(9);
   collectInvestimentos().forEach(r=>{
-    doc.text((r.instituicao||'—')+' · '+r.modalidade+' · '+(r.fundo||'—')+' · '+fmtMoney(r.saldo),14,y);y+=6;
+    doc.text((r.instituicao||'—')+' · '+(r.pais||'—')+' · '+r.modalidade+' · '+(r.fundo||'—')+' · '+fmtMoney(r.saldo,r.moeda),14,y);y+=6;
     if(y>270){doc.addPage();y=18;}
   });
   y+=4;doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text('Contas Bancárias',14,y);y+=7;
   doc.setFont('helvetica','normal');doc.setFontSize(9);
   collectContas().forEach(r=>{
-    doc.text((r.banco||'—')+' · Ag '+(r.agencia||'—')+' · '+r.tipo+' · '+fmtMoney(r.saldo),14,y);y+=6;
+    doc.text((r.banco||'—')+' · '+(r.pais||'—')+' · Ag '+(r.agencia||'—')+' · '+r.tipo+' · '+fmtMoney(r.saldo,r.moeda),14,y);y+=6;
     if(y>270){doc.addPage();y=18;}
   });
   y+=6;doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text('Resumo de Aquisição dos Bens',14,y);y+=7;
@@ -465,7 +522,8 @@ document.getElementById('btn-pdf').onclick=function(){
   doc.text(bens,14,y);y+=bens.length*5+8;
   const t=calcTotais();
   doc.setFont('helvetica','bold');
-  doc.text('Total Investimentos: '+fmtMoney(t.inv)+'   |   Total Contas: '+fmtMoney(t.con)+'   |   Total Geral: '+fmtMoney(t.geral),14,y);
+  const totalsPdf=doc.splitTextToSize('Total Investimentos: '+formatTotalsByCurrency(t.invPorMoeda)+'   |   Total Contas: '+formatTotalsByCurrency(t.conPorMoeda)+'   |   Total Geral: '+formatTotalsByCurrency(t.geralPorMoeda),180);
+  doc.text(totalsPdf,14,y);
   doc.save('relatorio-financeiro-'+(document.getElementById('f-nome').value||'cliente').replace(/\s+/g,'_')+'.pdf');
 };
 
